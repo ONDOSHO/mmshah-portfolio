@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MM Shah Comprehensive School</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #ffecd2 0%, #fcb69f 100%);
+      padding: 20px;
+      color: #333;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    #searchBox, #sortButton, #saveButton {
+      margin: 10px auto;
+      display: block;
+      padding: 8px;
+      font-size: 16px;
+    }
+    #searchBox {
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #ffffffcc;
+    }
+    th, td {
+      border: 1px solid #888;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .total {
+      background-color: #ffd700;
+    }
+    .averages-row {
+      background-color: #e0f7fa;
+      font-weight: bold;
+    }
+    #passwordPrompt {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #passwordPrompt input {
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="passwordPrompt">
+    <div>
+      <h2 style="color: white;">Enter Password to Access</h2>
+      <input type="password" id="passwordInput" placeholder="Enter Password" />
+      <button onclick="checkPassword()">Submit</button>
+    </div>
+  </div>
+
+  <h1>MM Shah Comprehensive School</h1>
+  <h2>Motto: Best All Round</h2>
+  <p>Grade 9 Entry Marks Sheet</p>
+
+  <input type="text" id="searchBox" onkeyup="filterTable()" placeholder="Search by student name or total...">
+  <button id="sortButton" onclick="sortByTotal()">Sort by Total Marks</button>
+  <button id="saveButton" onclick="saveToLocalStorage()">Save Data to Browser</button>
+  <button onclick="loadFromLocalStorage()">Load Saved Data</button>
+  <button onclick="calculateAverages()">Calculate Class Averages</button>
+
+  <table id="marksTable">
+    <thead>
+      <tr>
+        <th>Student Name</th>
+        <th>Maths</th>
+        <th>English</th>
+        <th>Kiswahili</th>
+        <th>PTech</th>
+        <th>Science</th>
+        <th>CRE</th>
+        <th>CA/S</th>
+        <th>SST</th>
+        <th>Agric</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="marksBody">
+      <!-- Rows will be inserted dynamically -->
+    </tbody>
+    <tfoot>
+      <tr class="averages-row">
+        <td>Class Average</td>
+        ${'<td id="avg' + (1 + 0) + '"></td>'.repeat(9)}
+        <td id="avgTotal"></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <script>
+    function updateTotal(cell) {
+      const row = cell.parentElement;
+      const cells = row.querySelectorAll('td');
+      let sum = 0;
+      for (let i = 1; i <= 9; i++) {
+        const value = parseFloat(cells[i].innerText);
+        if (!isNaN(value)) sum += value;
+      }
+      cells[10].innerText = sum;
+    }
+
+    function checkPassword() {
+      const input = document.getElementById('passwordInput').value;
+      if (input === 'mmshah@25') {
+        document.getElementById('passwordPrompt').style.display = 'none';
+      } else {
+        alert('Incorrect password.');
+      }
+    }
+
+    function filterTable() {
+      const query = document.getElementById('searchBox').value.toLowerCase();
+      const rows = document.querySelectorAll('#marksBody tr');
+      rows.forEach(row => {
+        const name = row.cells[0].innerText.toLowerCase();
+        const total = row.cells[10].innerText;
+        if (name.includes(query) || total.includes(query)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function sortByTotal() {
+      const tbody = document.getElementById('marksBody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a, b) => {
+        const totalA = parseFloat(a.cells[10].innerText) || 0;
+        const totalB = parseFloat(b.cells[10].innerText) || 0;
+        return totalB - totalA;
+      });
+      rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function saveToLocalStorage() {
+      const rows = document.querySelectorAll('#marksBody tr');
+      const data = [];
+      rows.forEach(row => {
+        const rowData = [];
+        row.querySelectorAll('td').forEach(cell => {
+          rowData.push(cell.innerText);
+        });
+        data.push(rowData);
+      });
+      localStorage.setItem('marksData', JSON.stringify(data));
+      alert('Data saved locally.');
+    }
+
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('marksData');
+      if (!saved) return;
+      const data = JSON.parse(saved);
+      const tbody = document.getElementById('marksBody');
+      tbody.innerHTML = '';
+      data.forEach((rowData, i) => {
+        const row = document.createElement('tr');
+        row.innerHTML = rowData.map((cell, index) => {
+          if (index === 0) return `<td contenteditable="true">${cell}</td>`;
+          if (index === 10) return `<td class="total">${cell}</td>`;
+          return `<td contenteditable="true" oninput="updateTotal(this)">${cell}</td>`;
+        }).join('');
+        tbody.appendChild(row);
+      });
+    }
+
+    function calculateAverages() {
+      const tbody = document.getElementById('marksBody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const sums = Array(10).fill(0);
+      let count = 0;
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        let validRow = false;
+        for (let i = 1; i <= 10; i++) {
+          const val = parseFloat(cells[i].innerText);
+          if (!isNaN(val)) {
+            sums[i - 1] += val;
+            validRow = true;
+          }
+        }
+        if (validRow) count++;
+      });
+      for (let i = 0; i < 9; i++) {
+        document.getElementById(`avg${i + 1}`).innerText = (sums[i] / count).toFixed(2);
+      }
+      document.getElementById('avgTotal').innerText = (sums[9] / count).toFixed(2);
+    }
+
+    const tbody = document.getElementById('marksBody');
+    for (let i = 1; i <= 300; i++) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td contenteditable="true">Student ${i}</td>
+        ${'<td contenteditable="true" oninput="updateTotal(this)"></td>'.repeat(9)}
+        <td class="total"></td>
+      `;
+      tbody.appendChild(row);
+    }
+  </script>
+</body>
+</html>
